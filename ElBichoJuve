@@ -1,0 +1,104 @@
+package bojm;
+
+import java.awt.Color;
+import robocode.AdvancedRobot;
+import robocode.BulletMissedEvent;
+import robocode.HitByBulletEvent;
+import robocode.HitRobotEvent;
+import robocode.HitWallEvent;
+import robocode.ScannedRobotEvent;
+import robocode.WinEvent;
+
+public class ElBichoJuve extends AdvancedRobot {
+	//AQUI DECLARAMOS LAS VARIABLES QUE SE USARAN MAS ADELANTE A LO LARGO DEL PROGRAMA
+	private Estado estado;
+	private ScannedRobotEvent eventoUltimo;
+
+	@Override
+	public void run() {
+		//LAMAMOS A LA FUNCION INCIALIZAR QUE SE ENCARGARA DE AJUSTAR UN PAR DE COSAS ANTES DE QUE INCIE EL DEMAS COMPORTAMIENTO DEL ROBOT
+		inicializar();
+		while (true) {
+			//EN ESTE WHILE SE USARA PARA LAS ACCIONES QUE SE USARAN CONSTANTEMENTE
+			switch (estado) {
+			//ESTE SWITCH LLAMA A LOS DISTINTOS ESTADOS DEL ROBOT CADA UNO CON FUNCIONES DISTINTAS
+			case GIRANDOD:
+				if (getOthers() == 1) {
+					isAdjustGunForRobotTurn();
+					turnRadarLeft(360);
+				}
+				setTurnRight(30);
+				setMaxVelocity(10);
+				ahead(100);
+				break;
+			case GIRANDOI:
+				setTurnLeft(20);
+				setMaxVelocity(10);
+				ahead(100);
+				break;
+			case DISPARANDO:
+				if (eventoUltimo.getEnergy() <= 5) {
+					estado = Estado.EMBESTIR;
+				} else {
+					if ((eventoUltimo.getDistance() > 200) && (getGunHeading() == getRadarHeading())) {
+						fire(1);
+						estado = Estado.GIRANDOD;
+					}
+					if (getGunHeading() == getRadarHeading()) {
+						fire(3);
+						estado = Estado.GIRANDOD;
+					} else {
+						estado = Estado.GIRANDOD;
+					}
+				}
+				break;
+			case EMBESTIR:
+				turnRight(eventoUltimo.getBearing());
+				ahead(eventoUltimo.getDistance() + 100);
+				turnRight(360);
+				estado = Estado.GIRANDOD;
+				break;
+			default:
+				doNothing();
+				break;
+			}
+		}
+	}
+
+	private void inicializar() {
+		setColors(Color.BLACK, Color.PINK, Color.PINK);
+		estado = Estado.GIRANDOD;
+	}
+	//AQUI SE USAN LAS FUNCIONES ON DONDE SE LLEVARAN A CABO LAS TRANSICIONES ENTRE ESTADOS DEPENDIENDO DE LO QUE SUCEDA CON EL ROBOT
+	@Override
+	public void onScannedRobot(ScannedRobotEvent event) {
+		eventoUltimo = event;
+		estado = Estado.DISPARANDO;
+
+	}
+
+	@Override
+	public void onBulletMissed(BulletMissedEvent event) {
+		estado = Estado.GIRANDOD;
+	}
+
+	public void onHitRobot(HitRobotEvent e) {
+
+		if (e.getBearing() > -10 && e.getBearing() < 10) {
+			fire(3);
+		}
+		if (e.isMyFault()) {
+			turnRight(10);
+		}
+	}
+	//ON WIN LO USAMOS PARA QUE NUESTRO ROBOT 'EMULE' EL GRITO DE CRISITANO RONALDO SIUUU
+	@Override
+	public void onWin(WinEvent event) {
+		out.println("Siuuuuuuuuuuuuuuuuuuuuuu");
+	}
+	//AQUI SE ENUMERAN LOS ESTADOS QUE USARA EL ROBOT
+	private enum Estado {
+		GIRANDOD, GIRANDOI, DISPARANDO, EMBESTIR, CHOCANDO,
+	}
+
+}
